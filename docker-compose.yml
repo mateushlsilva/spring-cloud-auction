@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  config-service:
+    container_name: config-service
+    build:
+      context: ./config-service
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - '8888:8888'
+    volumes:
+      - ./config-service:/app
+      - gradle-config:/root/.gradle
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    networks:
+      - auction-network
+
+  service-registry:
+    container_name: service-registry
+    build:
+      context: ./service-registry
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - '8761:8761'
+    volumes:
+      - ./service-registry:/app
+      - gradle-registry:/root/.gradle
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      config-service:
+        condition: service_started
+    networks:
+      - auction-network
+
+  gateway:
+    container_name: gateway
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./gateway:/app
+      - gradle-gateway:/root/.gradle
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      config-service:
+        condition: service_started
+      service-registry:
+        condition: service_started
+    networks:
+      - auction-network
+
+volumes:
+  gradle-config:
+  gradle-registry:
+  gradle-gateway:
+
+networks:
+  auction-network:
+    driver: bridge
