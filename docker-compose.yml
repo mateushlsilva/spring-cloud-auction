@@ -54,14 +54,79 @@ services:
         condition: service_started
       service-registry:
         condition: service_started
+      rabbitmq:
+        condition: service_started
     networks:
       - auction-network
+
+  auth-service:
+    container_name: auth-service
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+      target: dev
+    ports:
+      - '8081:8081'
+    volumes:
+      - ./auth-service:/app
+      - gradle-auth-service:/root/.gradle
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      config-service:
+        condition: service_started
+      service-registry:
+        condition: service_started
+      db:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    networks:
+      - auction-network
+      - db-network
+
+  db:
+    image: postgres:17.5-alpine3.21
+    container_name: db
+    ports:
+      - '5432:5432'
+    networks:
+      - db-network
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: adm
+      POSTGRES_USER: adm
+      POSTGRES_DB: mydb
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    networks:
+      - auction-network
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes: [ 'rabbitmq_data:/var/lib/rabbitmq' ]
+
 
 volumes:
   gradle-config:
   gradle-registry:
   gradle-gateway:
+  gradle-auth-service:
+  postgres_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
 
 networks:
   auction-network:
+    driver: bridge
+  db-network:
     driver: bridge

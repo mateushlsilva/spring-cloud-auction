@@ -3,5 +3,6 @@ rootProject.name = "spring-monorepo"
 include(
     "service-registry",
     "config-service",
-    "gateway"
+    "auth-service",
+    "gateway",
 )
